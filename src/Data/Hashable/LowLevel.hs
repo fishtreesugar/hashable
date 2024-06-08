@@ -5,6 +5,7 @@ module Data.Hashable.LowLevel (
     Salt,
     defaultSalt,
     hashInt,
+    hashWord,
     hashInt64,
     hashWord64,
     hashPtrWithSalt,
@@ -48,9 +49,9 @@ defaultSalt = defaultSalt'
 
 defaultSalt' :: Salt
 #if WORD_SIZE_IN_BITS == 64
-defaultSalt' = -3750763034362895579 -- 14695981039346656037 :: Int64
+defaultSalt' = 14695981039346656037
 #else
-defaultSalt' = -2128831035 -- 2166136261 :: Int32
+defaultSalt' = 2166136261
 #endif
 {-# INLINE defaultSalt' #-}
 
@@ -61,7 +62,10 @@ defaultSalt' = -2128831035 -- 2166136261 :: Int32
 -- | Hash 'Int'. First argument is a salt, second argument is an 'Int'.
 -- The result is new salt / hash value.
 hashInt :: Salt -> Int -> Salt
-hashInt !s !x = fromIntegral (mixHash (fromIntegral s) (fromIntegral x))
+hashInt !s !x = fromIntegral (mixHash s (fromIntegral x))
+
+hashWord :: Salt -> Word -> Salt
+hashWord = mixHash
 
 hashInt64  :: Salt -> Int64 -> Salt
 hashWord64 :: Salt -> Word64 -> Salt

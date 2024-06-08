@@ -240,23 +240,23 @@ class Eq a => Hashable a where
     --
     --  * 'hashWithSalt' may return negative 'Int' values.
     --
-    hashWithSalt :: Int -> a -> Int
+    hashWithSalt :: Word -> a -> Word
 
     -- | Like 'hashWithSalt', but no salt is used. The default
     -- implementation uses 'hashWithSalt' with some default salt.
     -- Instances might want to implement this method to provide a more
     -- efficient implementation than the default implementation.
-    hash :: a -> Int
+    hash :: a -> Word
     hash = defaultHash
 
-    default hashWithSalt :: (Generic a, GHashable Zero (Rep a)) => Int -> a -> Int
+    default hashWithSalt :: (Generic a, GHashable Zero (Rep a)) => Word -> a -> Word
     hashWithSalt = genericHashWithSalt
     {-# INLINE hashWithSalt #-}
 
 -- | Generic 'hashWithSalt'.
 --
 -- @since 1.3.0.0
-genericHashWithSalt :: (Generic a, GHashable Zero (Rep a)) => Int -> a -> Int
+genericHashWithSalt :: (Generic a, GHashable Zero (Rep a)) => Word -> a -> Word
 genericHashWithSalt = \salt -> ghashWithSalt HashArgs0 salt . from
 {-# INLINE genericHashWithSalt #-}
 
@@ -265,47 +265,47 @@ data One
 
 data family HashArgs arity a :: Type
 data instance HashArgs Zero a = HashArgs0
-newtype instance HashArgs One  a = HashArgs1 (Int -> a -> Int)
+newtype instance HashArgs One  a = HashArgs1 (Word -> a -> Word)
 
 -- | The class of types that can be generically hashed.
 class GHashable arity f where
-    ghashWithSalt :: HashArgs arity a -> Int -> f a -> Int
+    ghashWithSalt :: HashArgs arity a -> Word -> f a -> Word
 
 class Eq1 t => Hashable1 t where
     -- | Lift a hashing function through the type constructor.
-    liftHashWithSalt :: (Int -> a -> Int) -> Int -> t a -> Int
+    liftHashWithSalt :: (Word -> a -> Word) -> Word -> t a -> Word
 
-    default liftHashWithSalt :: (Generic1 t, GHashable One (Rep1 t)) => (Int -> a -> Int) -> Int -> t a -> Int
+    default liftHashWithSalt :: (Generic1 t, GHashable One (Rep1 t)) => (Word -> a -> Word) -> Word -> t a -> Word
     liftHashWithSalt = genericLiftHashWithSalt
     {-# INLINE liftHashWithSalt #-}
 
 -- | Generic 'liftHashWithSalt'.
 --
 -- @since 1.3.0.0
-genericLiftHashWithSalt :: (Generic1 t, GHashable One (Rep1 t)) => (Int -> a -> Int) -> Int -> t a -> Int
+genericLiftHashWithSalt :: (Generic1 t, GHashable One (Rep1 t)) => (Word -> a -> Word) -> Word -> t a -> Word
 genericLiftHashWithSalt = \h salt -> ghashWithSalt (HashArgs1 h) salt . from1
 {-# INLINE genericLiftHashWithSalt #-}
 
 class Eq2 t => Hashable2 t where
     -- | Lift a hashing function through the binary type constructor.
-    liftHashWithSalt2 :: (Int -> a -> Int) -> (Int -> b -> Int) -> Int -> t a b -> Int
+    liftHashWithSalt2 :: (Word -> a -> Word) -> (Word -> b -> Word) -> Word -> t a b -> Word
 
 -- | Lift the 'hashWithSalt' function through the type constructor.
 --
 -- > hashWithSalt1 = liftHashWithSalt hashWithSalt
-hashWithSalt1 :: (Hashable1 f, Hashable a) => Int -> f a -> Int
+hashWithSalt1 :: (Hashable1 f, Hashable a) => Word -> f a -> Word
 hashWithSalt1 = liftHashWithSalt hashWithSalt
 
 -- | Lift the 'hashWithSalt' function through the type constructor.
 --
 -- > hashWithSalt2 = liftHashWithSalt2 hashWithSalt hashWithSalt
-hashWithSalt2 :: (Hashable2 f, Hashable a, Hashable b) => Int -> f a b -> Int
+hashWithSalt2 :: (Hashable2 f, Hashable a, Hashable b) => Word -> f a b -> Word
 hashWithSalt2 = liftHashWithSalt2 hashWithSalt hashWithSalt
 
 -- | Lift the 'hashWithSalt' function halfway through the type constructor.
 -- This function makes a suitable default implementation of 'liftHashWithSalt',
 -- given that the type constructor @t@ in question can unify with @f a@.
-defaultLiftHashWithSalt :: (Hashable2 f, Hashable a) => (Int -> b -> Int) -> Int -> f a b -> Int
+defaultLiftHashWithSalt :: (Hashable2 f, Hashable a) => (Word -> b -> Word) -> Word -> f a b -> Word
 defaultLiftHashWithSalt h = liftHashWithSalt2 hashWithSalt h
 
 -- | Since we support a generic implementation of 'hashWithSalt' we
@@ -315,14 +315,14 @@ defaultLiftHashWithSalt h = liftHashWithSalt2 hashWithSalt h
 --
 -- @since 1.4.3.0
 --
-defaultHashWithSalt :: Hashable a => Int -> a -> Int
-defaultHashWithSalt salt x = salt `hashInt` hash x
+defaultHashWithSalt :: Hashable a => Word -> a -> Word
+defaultHashWithSalt salt x = salt `hashWord` hash x
 
 -- | Default implementation of 'hash' based on 'hashWithSalt'.
 --
 -- @since 1.4.3.0
 --
-defaultHash :: Hashable a => a -> Int
+defaultHash :: Hashable a => a -> Word
 defaultHash = hashWithSalt defaultSalt
 
 -- | Transform a value into a 'Hashable' value, then hash the
@@ -341,14 +341,14 @@ defaultHash = hashWithSalt defaultSalt
 -- @since 1.2.0.0
 hashUsing :: (Hashable b) =>
              (a -> b)           -- ^ Transformation function.
-          -> Int                -- ^ Salt.
+          -> Word               -- ^ Salt.
           -> a                  -- ^ Value to transform.
-          -> Int
+          -> Word
 hashUsing f salt x = hashWithSalt salt (f x)
 {-# INLINE hashUsing #-}
 
 instance Hashable Int where
-    hash = id
+    hash = fromIntegral
     hashWithSalt = hashInt
 
 instance Hashable Int8 where
@@ -368,8 +368,8 @@ instance Hashable Int64 where
     hashWithSalt = hashInt64
 
 instance Hashable Word where
-    hash = fromIntegral
-    hashWithSalt = defaultHashWithSalt
+    hash = id
+    hashWithSalt = hashWord
 
 instance Hashable Word8 where
     hash = fromIntegral
@@ -388,19 +388,19 @@ instance Hashable Word64 where
     hashWithSalt = hashWord64
 
 instance Hashable () where
-    hash = fromEnum
+    hash _ = 1
     hashWithSalt = defaultHashWithSalt
 
 instance Hashable Bool where
-    hash = fromEnum
+    hash = fromIntegral . fromEnum
     hashWithSalt = defaultHashWithSalt
 
 instance Hashable Ordering where
-    hash = fromEnum
+    hash = fromIntegral . fromEnum
     hashWithSalt = defaultHashWithSalt
 
 instance Hashable Char where
-    hash = fromEnum
+    hash = fromIntegral . fromEnum
     hashWithSalt = defaultHashWithSalt
 
 #if defined(VERSION_integer_gmp) || defined(VERSION_ghc_bignum)
@@ -429,7 +429,7 @@ instance Hashable Natural where
 
 instance Hashable Integer where
 #if defined(VERSION_ghc_bignum)
-    hash (IS n)  = I# n
+    hash (IS n)  = fromIntegral (I# n)
     hash (IP bn) = hash (BN# bn)
     hash (IN bn) = negate (hash (BN# bn))
 
@@ -437,7 +437,7 @@ instance Hashable Integer where
     hashWithSalt salt (IP bn) = hashWithSalt salt (BN# bn)
     hashWithSalt salt (IN bn) = negate (hashWithSalt salt (BN# bn))
 #elif defined(VERSION_integer_gmp)
-    hash (S# n)   = (I# n)
+    hash (S# n)   = fromIntegral (I# n)
     hash (Jp# bn) = hash bn
     hash (Jn# bn) = negate (hash bn)
 
@@ -496,10 +496,10 @@ instance Hashable Double where
         | otherwise = hash (show x)
     hashWithSalt = defaultHashWithSalt
 
--- | A value with bit pattern (01)* (or 5* in hexa), for any size of Int.
+-- | A value with bit pattern (01)* (or 5* in hexa), for any size of IWord.
 -- It is used as data constructor distinguisher. GHC computes its value during
 -- compilation.
-distinguisher :: Int
+distinguisher :: Word
 distinguisher = fromIntegral $ (maxBound :: Word) `quot` 3
 {-# INLINE distinguisher #-}
 
@@ -509,8 +509,8 @@ instance Hashable a => Hashable (Maybe a) where
     hashWithSalt = hashWithSalt1
 
 instance Hashable1 Maybe where
-    liftHashWithSalt _ s Nothing = s `hashInt` 0
-    liftHashWithSalt h s (Just a) = s `hashInt` distinguisher `h` a
+    liftHashWithSalt _ s Nothing = s `hashWord` 0
+    liftHashWithSalt h s (Just a) = s `hashWord` distinguisher `h` a
 
 instance (Hashable a, Hashable b) => Hashable (Either a b) where
     hash (Left a)  = 0 `hashWithSalt` a
@@ -521,8 +521,8 @@ instance Hashable a => Hashable1 (Either a) where
     liftHashWithSalt = defaultLiftHashWithSalt
 
 instance Hashable2 Either where
-    liftHashWithSalt2 h _ s (Left a) = s `hashInt` 0 `h` a
-    liftHashWithSalt2 _ h s (Right b) = s `hashInt` distinguisher `h` b
+    liftHashWithSalt2 h _ s (Left a) = s `hashWord` 0 `h` a
+    liftHashWithSalt2 _ h s (Right b) = s `hashWord` distinguisher `h` b
 
 instance (Hashable a1, Hashable a2) => Hashable (a1, a2) where
     hashWithSalt = hashWithSalt1
@@ -609,11 +609,11 @@ instance (Hashable a1, Hashable a2, Hashable a3, Hashable a4,
 -}
 
 instance Hashable (StableName a) where
-    hash = hashStableName
+    hash = fromIntegral . hashStableName
     hashWithSalt = defaultHashWithSalt
 
 -- Auxiliary type for Hashable [a] definition
-data SPInt = SP !Int !Int
+data SPInt = SP !Salt !Int
 
 instance Hashable a => Hashable [a] where
     {-# SPECIALIZE instance Hashable [Char] #-}
@@ -769,7 +769,7 @@ instance Hashable Fingerprint where
     hashWithSalt = defaultHashWithSalt
     {-# INLINE hash #-}
 
-hashTypeRep :: Type.Reflection.TypeRep a -> Int
+hashTypeRep :: Type.Reflection.TypeRep a -> Word
 hashTypeRep tr =
     let Fingerprint x _ = typeRepFingerprint tr in fromIntegral x
 
@@ -789,9 +789,9 @@ instance Hashable Void where
     hashWithSalt _ = absurd
 
 -- | Compute a hash value for the content of this pointer.
-hashPtr :: Ptr a      -- ^ pointer to the data to hash
-        -> Int        -- ^ length, in bytes
-        -> IO Int     -- ^ hash value
+hashPtr :: Ptr a       -- ^ pointer to the data to hash
+        -> Int         -- ^ length, in bytes
+        -> IO Word     -- ^ hash value
 hashPtr p len = hashPtrWithSalt p len defaultSalt
 
 -- | Compute a hash value for the content of this 'ByteArray#',
@@ -799,12 +799,12 @@ hashPtr p len = hashPtrWithSalt p len defaultSalt
 hashByteArray :: ByteArray#  -- ^ data to hash
               -> Int         -- ^ offset, in bytes
               -> Int         -- ^ length, in bytes
-              -> Int         -- ^ hash value
+              -> Word        -- ^ hash value
 hashByteArray ba0 off len = hashByteArrayWithSalt ba0 off len defaultSalt
 {-# INLINE hashByteArray #-}
 
 instance Hashable Unique where
-    hash = hashUnique
+    hash = fromIntegral . hashUnique
     hashWithSalt = defaultHashWithSalt
 
 instance Hashable Version where
@@ -911,8 +911,8 @@ instance (Hashable1 f, Hashable1 g, Hashable a) => Hashable (FP.Product f g a) w
     hashWithSalt = hashWithSalt1
 
 instance (Hashable1 f, Hashable1 g) => Hashable1 (FS.Sum f g) where
-    liftHashWithSalt h s (FS.InL a) = liftHashWithSalt h (s `hashInt` 0) a
-    liftHashWithSalt h s (FS.InR a) = liftHashWithSalt h (s `hashInt` distinguisher) a
+    liftHashWithSalt h s (FS.InL a) = liftHashWithSalt h (s `hashWord` 0) a
+    liftHashWithSalt h s (FS.InR a) = liftHashWithSalt h (s `hashWord` distinguisher) a
 
 instance (Hashable1 f, Hashable1 g, Hashable a) => Hashable (FS.Sum f g a) where
     hashWithSalt = hashWithSalt1
@@ -937,7 +937,7 @@ instance Hashable AB.ByteArray where
 -------------------------------------------------------------------------------
 
 -- | A hashable value along with the result of the 'hash' function.
-data Hashed a = Hashed a {-# UNPACK #-} !Int
+data Hashed a = Hashed a {-# UNPACK #-} !Word
 
 -- | Wrap a hashable value, caching the 'hash' function result.
 hashed :: Hashable a => a -> Hashed a
@@ -950,7 +950,7 @@ unhashed (Hashed a _) = a
 -- | 'hash' has 'Eq' requirement.
 --
 -- @since 1.4.0.0
-hashedHash :: Hashed a -> Int
+hashedHash :: Hashed a -> Word
 hashedHash (Hashed _ h) = h
 
 -- | Uses precomputed hash to detect inequality faster

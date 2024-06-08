@@ -52,7 +52,7 @@ instance (Hashable1 f, GHashable One g) => GHashable One (f :.: g) where
     ghashWithSalt targs salt = liftHashWithSalt (ghashWithSalt targs) salt . unComp1
 
 class SumSize f => GSum arity f where
-    hashSum :: HashArgs arity a -> Int -> Int -> f a -> Int
+    hashSum :: HashArgs arity a -> Word -> Int -> f a -> Word
     -- hashSum args salt index value = ...
 
 -- [Note: Hashing a sum type]

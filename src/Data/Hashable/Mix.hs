@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP           #-}
+{-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE MagicHash     #-}
 {-# LANGUAGE Trustworthy   #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -12,7 +13,7 @@ module Data.Hashable.Mix (
 import Data.Bits (unsafeShiftR, xor)
 import GHC.Exts  (Word (..), byteSwap#, timesWord2#, xor#)
 
-type Salt = Int
+type Salt = Word
 
 mulFold :: Word -> Word -> Word
 mulFold (W# x) (W# y) = case timesWord2# x y of
@@ -45,4 +46,4 @@ shiftXorMultiply n k w = shiftXor n w * k
 
 -- | Mix hash is inspired by how xxh3 works on small (<=16byte) inputs.
 mixHash :: Word -> Word -> Word
-mixHash hi lo = avalanche (byteSwap lo + hi + mulFold hi lo)
+mixHash !hi !lo = avalanche (byteSwap lo + hi + mulFold hi lo)

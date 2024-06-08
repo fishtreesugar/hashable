@@ -94,7 +94,7 @@ pTextRechunk t cs = TL.fromStrict t === rechunkText t cs
 pTextLazyRechunked :: T.Text -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
 pTextLazyRechunked t cs0 cs1 = hash (rechunkText t cs0) === hash (rechunkText t cs1)
 
-pTextLazyRechunked' :: T.Text -> Int -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
+pTextLazyRechunked' :: T.Text -> Word -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
 pTextLazyRechunked' t salt cs0 cs1 = hashWithSalt salt (rechunkText t cs0) === hashWithSalt salt (rechunkText t cs1)
 
 -- | Break up a string into chunks of different sizes.
@@ -137,7 +137,7 @@ pBSRechunk t cs = fromStrict t == rechunkBS t cs
 pBSLazyRechunked :: B.ByteString -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
 pBSLazyRechunked t cs1 cs2 = hash (rechunkBS t cs1) === hash (rechunkBS t cs2)
 
-pBSLazyRechunked' :: B.ByteString -> Int -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
+pBSLazyRechunked' :: B.ByteString -> Word -> NonEmptyList ChunkSize -> NonEmptyList ChunkSize -> Property
 pBSLazyRechunked' t salt cs1 cs2 = hashWithSalt salt (rechunkBS t cs1) === hashWithSalt salt (rechunkBS t cs2)
 
 -- This wrapper is required by 'runST'.
@@ -215,14 +215,14 @@ pSum3_differ x = nub hs == hs
              , hash (S3b x :: Sum3 Int Int Int)
              , hash (S3c x :: Sum3 Int Int Int) ]
 
-pGeneric :: Sum3 Int Bool String -> Int -> Bool
+pGeneric :: Sum3 Int Bool String -> Word -> Bool
 pGeneric x salt = hashWithSalt salt x == genericHashWithSalt salt x
 
 instance (Arbitrary a, Hashable a) => Arbitrary (Hashed a) where
   arbitrary = fmap hashed arbitrary
   shrink xs = map hashed $ shrink $ unhashed xs
 
-pLiftedHashed :: Int -> Hashed (Either Int String) -> Bool
+pLiftedHashed :: Word -> Hashed (Either Int String) -> Bool
 pLiftedHashed s h = hashWithSalt s h == hashWithSalt1 s h
 
 properties :: [Test]
