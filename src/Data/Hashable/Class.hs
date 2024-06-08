@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PackageImports        #-}
 {-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE Trustworthy           #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -271,7 +272,7 @@ newtype instance HashArgs One  a = HashArgs1 (Word -> a -> Word)
 class GHashable arity f where
     ghashWithSalt :: HashArgs arity a -> Word -> f a -> Word
 
-class Eq1 t => Hashable1 t where
+class (Eq1 t, forall a. Hashable a => Hashable (t a)) => Hashable1 t where
     -- | Lift a hashing function through the type constructor.
     liftHashWithSalt :: (Word -> a -> Word) -> Word -> t a -> Word
 
@@ -286,7 +287,7 @@ genericLiftHashWithSalt :: (Generic1 t, GHashable One (Rep1 t)) => (Word -> a ->
 genericLiftHashWithSalt = \h salt -> ghashWithSalt (HashArgs1 h) salt . from1
 {-# INLINE genericLiftHashWithSalt #-}
 
-class Eq2 t => Hashable2 t where
+class (Eq2 t, forall a. Hashable a => Hashable1 (t a)) => Hashable2 t where
     -- | Lift a hashing function through the binary type constructor.
     liftHashWithSalt2 :: (Word -> a -> Word) -> (Word -> b -> Word) -> Word -> t a b -> Word
 
